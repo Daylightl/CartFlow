@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "name": "苹果手机 iPhone 15 Pro",
+    "price": 5999.00,
+    "stock": 100,
+    "category": "电子产品",
+    "description": "最新款iPhone，搭载A17 Pro芯片，钛金属机身，性能强劲",
+    "imageUrl": "/images/products/thumbs/P001_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 2,
+    "name": "华为手机 Mate 60 Pro",
+    "price": 4999.00,
+    "stock": 80,
+    "category": "电子产品",
+    "description": "华为旗舰手机，支持卫星通信，影像系统升级",
+    "imageUrl": "/images/products/thumbs/P001_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 3,
+    "name": "无线蓝牙耳机",
+    "price": 299.00,
+    "stock": 200,
+    "category": "电子产品",
+    "description": "主动降噪，长续航，舒适佩戴",
+    "imageUrl": "/images/products/thumbs/P002_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 4,
+    "name": "降噪耳机专业版",
+    "price": 599.00,
+    "stock": 150,
+    "category": "电子产品",
+    "description": "专业级降噪，Hi-Fi音质，适合音乐发烧友",
+    "imageUrl": "/images/products/thumbs/P002_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 5,
+    "name": "纯棉黑色T恤",
+    "price": 99.00,
+    "stock": 500,
+    "category": "服装鞋包",
+    "description": "100%纯棉，舒适透气，经典百搭",
+    "imageUrl": "/images/products/thumbs/P003_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 6,
+    "name": "运动休闲T恤",
+    "price": 129.00,
+    "stock": 300,
+    "category": "服装鞋包",
+    "description": "速干面料，运动休闲两相宜",
+    "imageUrl": "/images/products/thumbs/P003_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 7,
+    "name": "进口零食大礼包",
+    "price": 49.00,
+    "stock": 400,
+    "category": "食品饮料",
+    "description": "多种口味，进口原料，健康美味",
+    "imageUrl": "/images/products/thumbs/P002_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 8,
+    "name": "矿泉水24瓶装",
+    "price": 29.00,
+    "stock": 1000,
+    "category": "食品饮料",
+    "description": "天然矿泉水，富含多种矿物质",
+    "imageUrl": "/images/products/thumbs/P002_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 9,
+    "name": "畅销小说《三体》",
+    "price": 39.00,
+    "stock": 250,
+    "category": "图书文具",
+    "description": "刘慈欣科幻巨作，雨果奖获奖作品",
+    "imageUrl": "/images/products/thumbs/P001_thumb.jpg",
+    "status": "active"
+  },
+  {
+    "id": 10,
+    "name": "精装笔记本",
+    "price": 19.00,
+    "stock": 600,
+    "category": "图书文具",
+    "description": "精美装帧，优质纸张，适合记录与书写",
+    "imageUrl": "/images/products/thumbs/P001_thumb.jpg",
+    "status": "active"
+  }
+]

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的订单 - CartFlow</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/index.html" class="navbar-brand">CartFlow</a>
+            <div class="navbar-menu">
+                <a href="/index.html">首页</a>
+                <a href="/product-list.html">商品列表</a>
+            </div>
+            <div class="navbar-user" id="navbar-user"></div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <div class="card">
+            <h2 class="card-header">我的订单</h2>
+            <div id="order-list"></div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        let orders = [];
+
+        // 加载订单列表
+        async function loadOrders() {
+            if (!requireLogin()) return;
+
+            try {
+                const result = await get(`${API_BASE}/orders`);
+                if (result.success) {
+                    orders = result.data;
+                    renderOrders();
+                }
+            } catch (error) {
+                console.error('加载订单失败:', error);
+                showMessage('加载订单失败', 'error');
+            }
+        }
+
+        // 渲染订单
+        function renderOrders() {
+            const container = document.getElementById('order-list');
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <p class="empty-state-text">暂无订单</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/product-list.html'">
+                            去购物
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = orders.map(order => `
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                    <div class="d-flex justify-between align-center mb-10">
+                        <div>
+                            <strong>订单号：</strong>${order.orderId}
+                        </div>
+                        <div>
+                            ${getStatusBadge(order.status)}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-between align-center mb-10">
+                        <div>
+                            <strong>下单时间：</strong>${order.createTime}
+                        </div>
+                        <div style="font-size: 20px; color: #F56C6C; font-weight: bold;">
+                            ${formatPrice(order.totalAmount)}
+                        </div>
+                    </div>
+                    <div class="mb-10">
+                        <strong>商品数量：</strong>${order.items.length} 件
+                    </div>
+                    ${order.address ? `
+                        <div class="mb-10">
+                            <strong>收货地址：</strong>${order.address}
+                        </div>
+                    ` : ''}
+                    <div class="d-flex gap-10">
+                        <button class="btn btn-primary" onclick="viewOrder('${order.orderId}')">
+                            查看详情
+                        </button>
+                        ${order.status === 'pending' ? `
+                            <button class="btn btn-danger" onclick="cancelOrder('${order.orderId}')">
+                                取消订单
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 获取状态徽章
+        function getStatusBadge(status) {
+            const statusMap = {
+                'pending': { text: '待发货', color: '#E6A23C' },
+                'shipped': { text: '已发货', color: '#409EFF' },
+                'completed': { text: '已完成', color: '#67C23A' },
+                'cancelled': { text: '已取消', color: '#909399' }
+            };
+
+            const statusInfo = statusMap[status] || { text: '未知', color: '#909399' };
+            return `<span style="padding: 5px 15px; background-color: ${statusInfo.color}; color: white; border-radius: 4px;">
+                ${statusInfo.text}
+            </span>`;
+        }
+
+        // 查看订单
+        function viewOrder(orderId) {
+            window.location.href = '/order-detail.html?id=' + orderId;
+        }
+
+        // 取消订单
+        async function cancelOrder(orderId) {
+            if (!confirm('确定要取消这个订单吗？')) return;
+
+            try {
+                const result = await post(`${API_BASE}/orders/${orderId}/cancel`, {});
+                if (result.success) {
+                    showMessage('订单已取消', 'success');
+                    loadOrders();
+                } else {
+                    showMessage(result.message || '取消失败', 'error');
+                }
+            } catch (error) {
+                console.error('取消订单失败:', error);
+                showMessage('取消失败', 'error');
+            }
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOrders();
+        });
+    </script>
+</body>
+</html>

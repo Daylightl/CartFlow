@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "username": "zhangsan",
+    "password": "e10adc3949ba59abbe56e057f20f883e",
+    "email": "zhangsan@example.com",
+    "role": "user",
+    "registerTime": "2025-11-01 10:00:00"
+  },
+  {
+    "id": 2,
+    "username": "admin",
+    "password": "21232f297a57a5a743894a0e4a801fc3",
+    "email": "admin@example.com",
+    "role": "admin",
+    "registerTime": "2025-10-15 09:00:00"
+  },
+  {
+    "id": 3,
+    "username": "lisi",
+    "password": "e10adc3949ba59abbe56e057f20f883e",
+    "email": "lisi@example.com",
+    "role": "user",
+    "registerTime": "2025-11-05 14:30:00"
+  }
+]

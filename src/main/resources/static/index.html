@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CartFlow - 电商购物车系统</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/index.html" class="navbar-brand">CartFlow</a>
+            <div class="navbar-menu">
+                <a href="/index.html">首页</a>
+                <a href="/product-list.html">商品列表</a>
+            </div>
+            <div class="navbar-user" id="navbar-user">
+                <a href="/login.html">登录</a>
+                <a href="/register.html">注册</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 欢迎横幅 -->
+        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 60px 20px;">
+            <h1 style="font-size: 48px; margin-bottom: 20px;">欢迎来到 CartFlow</h1>
+            <p style="font-size: 20px; margin-bottom: 30px;">您的在线购物首选平台</p>
+            <button class="btn btn-success" onclick="window.location.href='/product-list.html'" style="font-size: 18px; padding: 12px 30px;">
+                开始购物
+            </button>
+        </div>
+
+        <!-- 商品分类 -->
+        <div class="card">
+            <h2 class="card-header">热门分类</h2>
+            <div id="categories" style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <!-- 分类将通过JavaScript动态加载 -->
+            </div>
+        </div>
+
+        <!-- 热门商品 -->
+        <div class="card">
+            <div class="d-flex justify-between align-center mb-20">
+                <h2 class="card-header" style="margin: 0;">热门商品</h2>
+                <a href="/product-list.html" style="color: #409EFF; text-decoration: none;">查看更多 →</a>
+            </div>
+            <div class="product-grid" id="hot-products">
+                <!-- 商品将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        // 加载分类
+        async function loadCategories() {
+            try {
+                const result = await get(`${API_BASE}/products/categories`);
+                if (result.success) {
+                    const container = document.getElementById('categories');
+                    container.innerHTML = result.data.map(category => `
+                        <div style="flex: 1; min-width: 200px;">
+                            <a href="/product-list.html?category=${encodeURIComponent(category)}"
+                               style="display: block; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                      color: white; text-align: center; border-radius: 8px; text-decoration: none;
+                                      font-size: 18px; font-weight: bold; transition: transform 0.3s;"
+                               onmouseover="this.style.transform='scale(1.05)'"
+                               onmouseout="this.style.transform='scale(1)'">
+                                ${category}
+                            </a>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载分类失败:', error);
+            }
+        }
+
+        // 加载热门商品（前8个）
+        async function loadHotProducts() {
+            try {
+                const result = await get(`${API_BASE}/products`);
+                if (result.success) {
+                    const products = result.data.slice(0, 8);
+                    const container = document.getElementById('hot-products');
+
+                    if (products.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><p class="empty-state-text">暂无商品</p></div>';
+                        return;
+                    }
+
+                    container.innerHTML = products.map(product => `
+                        <div class="product-card" onclick="window.location.href='/product-detail.html?id=${product.id}'">
+                            <img src="${product.imageUrl}" alt="${product.name}" class="product-image"
+                                 onerror="this.src='/images/products/thumbs/P001_thumb.jpg'">
+                            <div class="product-info">
+                                <div class="product-name">${product.name}</div>
+                                <div class="product-price">${formatPrice(product.price)}</div>
+                                <div class="product-stock">库存: ${product.stock}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载商品失败:', error);
+            }
+        }
+
+        // 页面加载时执行
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();
+            loadHotProducts();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - CartFlow</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/index.html" class="navbar-brand">CartFlow 管理后台</a>
+            <div class="navbar-menu">
+                <a href="/index.html">返回首页</a>
+            </div>
+            <div class="navbar-user" id="navbar-user"></div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 统计面板 -->
+        <div class="card">
+            <h2 class="card-header">数据统计</h2>
+            <div id="statistics" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;"></div>
+        </div>
+
+        <!-- 商品管理 -->
+        <div class="card">
+            <div class="d-flex justify-between align-center mb-20">
+                <h2 class="card-header" style="margin: 0;">商品管理</h2>
+                <button class="btn btn-success" onclick="showAddProductModal()">添加商品</button>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="table" id="product-table"></table>
+            </div>
+        </div>
+
+        <!-- 订单管理 -->
+        <div class="card">
+            <h2 class="card-header">订单管理</h2>
+            <div style="overflow-x: auto;">
+                <table class="table" id="order-table"></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑商品模态框 -->
+    <div id="productModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+         background-color: rgba(0,0,0,0.5); z-index: 1000;" onclick="closeModal(event)">
+        <div style="background: white; max-width: 600px; margin: 50px auto; border-radius: 8px; padding: 30px;"
+             onclick="event.stopPropagation()">
+            <h2 id="modalTitle">添加商品</h2>
+            <form id="productForm" onsubmit="handleProductSubmit(event)">
+                <input type="hidden" id="productId">
+                <div class="form-group">
+                    <label class="form-label">商品名称</label>
+                    <input type="text" id="productName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">价格</label>
+                    <input type="number" id="productPrice" class="form-input" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">库存</label>
+                    <input type="number" id="productStock" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">分类</label>
+                    <input type="text" id="productCategory" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <textarea id="productDescription" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">图片URL</label>
+                    <input type="text" id="productImageUrl" class="form-input"
+                           placeholder="/images/products/thumbs/P001_thumb.jpg">
+                </div>
+                <div class="d-flex gap-10">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">保存</button>
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeProductModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        let products = [];
+        let orders = [];
+        let editingProduct = null;
+
+        // 检查管理员权限
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkLoginStatus();
+            if (!requireAdmin()) return;
+
+            loadStatistics();
+            loadProducts();
+            loadOrders();
+        });
+
+        // 加载统计数据
+        async function loadStatistics() {
+            try {
+                const result = await get(`${API_BASE}/orders/admin/statistics`);
+                if (result.success) {
+                    const stats = result.data;
+                    document.getElementById('statistics').innerHTML = `
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                             color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 32px; font-weight: bold;">${stats.totalOrders}</div>
+                            <div style="margin-top: 10px;">订单总数</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                             color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 32px; font-weight: bold;">${formatPrice(stats.totalRevenue)}</div>
+                            <div style="margin-top: 10px;">总销售额</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                             color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 32px; font-weight: bold;">${stats.pendingOrders}</div>
+                            <div style="margin-top: 10px;">待发货订单</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+                             color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 32px; font-weight: bold;">${stats.completedOrders}</div>
+                            <div style="margin-top: 10px;">已完成订单</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
+        }
+
+        // 加载商品列表
+        async function loadProducts() {
+            try {
+                const result = await get(`${API_BASE}/products`);
+                if (result.success) {
+                    products = result.data;
+                    renderProducts();
+                }
+            } catch (error) {
+                console.error('加载商品失败:', error);
+            }
+        }
+
+        // 渲染商品表格
+        function renderProducts() {
+            const table = document.getElementById('product-table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>商品名称</th>
+                        <th>价格</th>
+                        <th>库存</th>
+                        <th>分类</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${products.map(product => `
+                        <tr>
+                            <td>${product.id}</td>
+                            <td>${product.name}</td>
+                            <td>${formatPrice(product.price)}</td>
+                            <td>${product.stock}</td>
+                            <td>${product.category}</td>
+                            <td>${product.status === 'active' ? '上架' : '下架'}</td>
+                            <td>
+                                <button class="btn btn-primary" onclick="editProduct(${product.id})">编辑</button>
+                                <button class="btn btn-danger" onclick="deleteProduct(${product.id})">删除</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+        }
+
+        // 加载订单列表
+        async function loadOrders() {
+            try {
+                const result = await get(`${API_BASE}/orders/admin/all`);
+                if (result.success) {
+                    orders = result.data;
+                    renderOrders();
+                }
+            } catch (error) {
+                console.error('加载订单失败:', error);
+            }
+        }
+
+        // 渲染订单表格
+        function renderOrders() {
+            const table = document.getElementById('order-table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>订单号</th>
+                        <th>用户ID</th>
+                        <th>总金额</th>
+                        <th>状态</th>
+                        <th>下单时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${orders.map(order => `
+                        <tr>
+                            <td>${order.orderId}</td>
+                            <td>${order.userId}</td>
+                            <td>${formatPrice(order.totalAmount)}</td>
+                            <td>${getStatusText(order.status)}</td>
+                            <td>${order.createTime}</td>
+                            <td>
+                                <select onchange="updateOrderStatus('${order.orderId}', this.value)"
+                                        style="padding: 5px; border-radius: 4px;">
+                                    <option value="">修改状态</option>
+                                    <option value="pending">待发货</option>
+                                    <option value="shipped">已发货</option>
+                                    <option value="completed">已完成</option>
+                                    <option value="cancelled">已取消</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'pending': '待发货',
+                'shipped': '已发货',
+                'completed': '已完成',
+                'cancelled': '已取消'
+            };
+            return map[status] || status;
+        }
+
+        // 显示添加商品模态框
+        function showAddProductModal() {
+            editingProduct = null;
+            document.getElementById('modalTitle').textContent = '添加商品';
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '';
+            document.getElementById('productModal').style.display = 'block';
+        }
+
+        // 编辑商品
+        function editProduct(id) {
+            editingProduct = products.find(p => p.id === id);
+            if (!editingProduct) return;
+
+            document.getElementById('modalTitle').textContent = '编辑商品';
+            document.getElementById('productId').value = editingProduct.id;
+            document.getElementById('productName').value = editingProduct.name;
+            document.getElementById('productPrice').value = editingProduct.price;
+            document.getElementById('productStock').value = editingProduct.stock;
+            document.getElementById('productCategory').value = editingProduct.category;
+            document.getElementById('productDescription').value = editingProduct.description;
+            document.getElementById('productImageUrl').value = editingProduct.imageUrl;
+            document.getElementById('productModal').style.display = 'block';
+        }
+
+        // 关闭模态框
+        function closeProductModal() {
+            document.getElementById('productModal').style.display = 'none';
+        }
+
+        function closeModal(event) {
+            if (event.target.id === 'productModal') {
+                closeProductModal();
+            }
+        }
+
+        // 处理商品表单提交
+        async function handleProductSubmit(event) {
+            event.preventDefault();
+
+            const productData = {
+                name: document.getElementById('productName').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                stock: parseInt(document.getElementById('productStock').value),
+                category: document.getElementById('productCategory').value,
+                description: document.getElementById('productDescription').value,
+                imageUrl: document.getElementById('productImageUrl').value || '/images/products/thumbs/P001_thumb.jpg',
+                status: 'active'
+            };
+
+            const productId = document.getElementById('productId').value;
+
+            try {
+                let result;
+                if (productId) {
+                    // 更新商品
+                    result = await put(`${API_BASE}/products/${productId}`, productData);
+                } else {
+                    // 添加商品
+                    result = await post(`${API_BASE}/products`, productData);
+                }
+
+                if (result.success) {
+                    showMessage('保存成功！', 'success');
+                    closeProductModal();
+                    loadProducts();
+                    loadStatistics();
+                } else {
+                    showMessage(result.message || '保存失败', 'error');
+                }
+            } catch (error) {
+                console.error('保存商品失败:', error);
+                showMessage('保存失败', 'error');
+            }
+        }
+
+        // 删除商品
+        async function deleteProduct(id) {
+            if (!confirm('确定要删除这个商品吗？')) return;
+
+            try {
+                const result = await del(`${API_BASE}/products/${id}`);
+                if (result.success) {
+                    showMessage('删除成功！', 'success');
+                    loadProducts();
+                } else {
+                    showMessage(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                console.error('删除商品失败:', error);
+                showMessage('删除失败', 'error');
+            }
+        }
+
+        // 更新订单状态
+        async function updateOrderStatus(orderId, status) {
+            if (!status) return;
+
+            try {
+                const result = await put(`${API_BASE}/orders/admin/${orderId}/status`, { status });
+                if (result.success) {
+                    showMessage('状态更新成功！', 'success');
+                    loadOrders();
+                    loadStatistics();
+                } else {
+                    showMessage(result.message || '更新失败', 'error');
+                }
+            } catch (error) {
+                console.error('更新订单状态失败:', error);
+                showMessage('更新失败', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

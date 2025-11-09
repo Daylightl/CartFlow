@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品详情 - CartFlow</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/index.html" class="navbar-brand">CartFlow</a>
+            <div class="navbar-menu">
+                <a href="/index.html">首页</a>
+                <a href="/product-list.html">商品列表</a>
+            </div>
+            <div class="navbar-user" id="navbar-user"></div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <div class="card">
+            <div id="product-detail"></div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        let product = null;
+
+        // 加载商品详情
+        async function loadProductDetail() {
+            const productId = getUrlParam('id');
+            if (!productId) {
+                showMessage('商品不存在', 'error');
+                setTimeout(() => window.location.href = '/product-list.html', 1000);
+                return;
+            }
+
+            try {
+                const result = await get(`${API_BASE}/products/${productId}`);
+                if (result.success) {
+                    product = result.data;
+                    renderProductDetail();
+                } else {
+                    showMessage('商品不存在', 'error');
+                    setTimeout(() => window.location.href = '/product-list.html', 1000);
+                }
+            } catch (error) {
+                console.error('加载商品详情失败:', error);
+                showMessage('加载失败', 'error');
+            }
+        }
+
+        // 渲染商品详情
+        function renderProductDetail() {
+            if (!product) return;
+
+            const container = document.getElementById('product-detail');
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+                    <div>
+                        <img src="${product.imageUrl}" alt="${product.name}"
+                             style="width: 100%; border-radius: 8px;"
+                             onerror="this.src='/images/products/thumbs/P001_thumb.jpg'">
+                    </div>
+                    <div>
+                        <h1 style="font-size: 28px; margin-bottom: 20px;">${product.name}</h1>
+                        <div style="font-size: 32px; color: #F56C6C; font-weight: bold; margin-bottom: 20px;">
+                            ${formatPrice(product.price)}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <span style="color: #909399;">分类：</span>
+                            <span style="color: #409EFF;">${product.category}</span>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <span style="color: #909399;">库存：</span>
+                            <span style="font-weight: bold;">${product.stock} 件</span>
+                        </div>
+                        <div style="margin-bottom: 30px; padding: 15px; background-color: #f5f7fa; border-radius: 4px;">
+                            <h3 style="margin-bottom: 10px;">商品描述</h3>
+                            <p style="color: #606266; line-height: 1.8;">${product.description}</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
+                            <label>数量：</label>
+                            <input type="number" id="quantity" value="1" min="1" max="${product.stock}"
+                                   style="width: 100px; padding: 8px; border: 1px solid #dcdfe6; border-radius: 4px;">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-primary" onclick="addToCart()"
+                                    style="flex: 1; padding: 15px; font-size: 16px;">
+                                加入购物车
+                            </button>
+                            <button class="btn btn-success" onclick="buyNow()"
+                                    style="flex: 1; padding: 15px; font-size: 16px;">
+                                立即购买
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 添加到购物车
+        async function addToCart() {
+            if (!requireLogin()) return;
+
+            const quantity = parseInt(document.getElementById('quantity').value);
+            if (quantity < 1 || quantity > product.stock) {
+                showMessage('数量无效', 'error');
+                return;
+            }
+
+            try {
+                const result = await post(`${API_BASE}/cart/add`, {
+                    productId: product.id,
+                    quantity: quantity
+                });
+
+                if (result.success) {
+                    showMessage('添加成功！', 'success');
+                } else {
+                    showMessage(result.message || '添加失败', 'error');
+                }
+            } catch (error) {
+                console.error('添加购物车失败:', error);
+                showMessage('添加失败，请重试', 'error');
+            }
+        }
+
+        // 立即购买
+        async function buyNow() {
+            if (!requireLogin()) return;
+
+            const quantity = parseInt(document.getElementById('quantity').value);
+            if (quantity < 1 || quantity > product.stock) {
+                showMessage('数量无效', 'error');
+                return;
+            }
+
+            try {
+                const result = await post(`${API_BASE}/cart/add`, {
+                    productId: product.id,
+                    quantity: quantity
+                });
+
+                if (result.success) {
+                    window.location.href = '/cart.html';
+                } else {
+                    showMessage(result.message || '操作失败', 'error');
+                }
+            } catch (error) {
+                console.error('操作失败:', error);
+                showMessage('操作失败，请重试', 'error');
+            }
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProductDetail();
+        });
+    </script>
+</body>
+</html>
