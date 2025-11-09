@@ -97,7 +97,7 @@
         // 检查管理员权限
         document.addEventListener('DOMContentLoaded', async function() {
             await checkLoginStatus();
-            if (!requireAdmin()) return;
+            if (!(await requireAdmin())) return;
 
             loadStatistics();
             loadProducts();

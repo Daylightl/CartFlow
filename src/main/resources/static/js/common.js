@@ -15,19 +15,27 @@ document.addEventListener('DOMContentLoaded', function() {
 async function checkLoginStatus() {
     try {
         const response = await fetch(`${API_BASE}/user/info`, {
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         const result = await response.json();
 
+        console.log('登录状态检查:', result);
+
         if (result.success) {
             currentUser = result.data;
+            console.log('当前用户:', currentUser);
             updateNavbar(true);
         } else {
             currentUser = null;
+            console.log('未登录:', result.message);
             updateNavbar(false);
         }
     } catch (error) {
         console.error('检查登录状态失败:', error);
+        currentUser = null;
         updateNavbar(false);
     }
 }
@@ -149,26 +157,47 @@ async function del(url, data = null) {
 }
 
 // 检查是否登录，未登录跳转到登录页
-function requireLogin() {
+async function requireLogin() {
+    console.log('requireLogin检查, currentUser:', currentUser);
+
+    // 如果没有用户信息，重新检查一次
     if (!currentUser) {
+        await checkLoginStatus();
+    }
+
+    if (!currentUser) {
+        console.log('用户未登录，跳转到登录页');
         showMessage('请先登录', 'warning');
         setTimeout(() => {
-            window.location.href = '/login.html';
+            const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = '/login.html?redirect=' + redirect;
         }, 1000);
         return false;
     }
+
+    console.log('用户已登录:', currentUser.username);
     return true;
 }
 
 // 检查管理员权限
-function requireAdmin() {
+async function requireAdmin() {
+    console.log('requireAdmin检查, currentUser:', currentUser);
+
+    // 如果没有用户信息，重新检查一次
+    if (!currentUser) {
+        await checkLoginStatus();
+    }
+
     if (!currentUser || currentUser.role !== 'admin') {
+        console.log('需要管理员权限');
         showMessage('需要管理员权限', 'error');
         setTimeout(() => {
             window.location.href = '/index.html';
         }, 1000);
         return false;
     }
+
+    console.log('管理员验证通过:', currentUser.username);
     return true;
 }
 

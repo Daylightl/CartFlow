@@ -105,7 +105,7 @@
 
         // 添加到购物车
         async function addToCart() {
-            if (!requireLogin()) return;
+            if (!(await requireLogin())) return;
 
             const quantity = parseInt(document.getElementById('quantity').value);
             if (quantity < 1 || quantity > product.stock) {
@@ -132,7 +132,7 @@
 
         // 立即购买
         async function buyNow() {
-            if (!requireLogin()) return;
+            if (!(await requireLogin())) return;
 
             const quantity = parseInt(document.getElementById('quantity').value);
             if (quantity < 1 || quantity > product.stock) {

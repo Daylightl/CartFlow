@@ -52,7 +52,7 @@
 
         // 加载购物车
         async function loadCart() {
-            if (!requireLogin()) return;
+            if (!(await requireLogin())) return;
 
             try {
                 const result = await get(`${API_BASE}/cart`);
