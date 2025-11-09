@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户注册 - CartFlow</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <style>
+        .register-container {
+            max-width: 400px;
+            margin: 80px auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/index.html" class="navbar-brand">CartFlow</a>
+            <div class="navbar-menu">
+                <a href="/index.html">首页</a>
+                <a href="/product-list.html">商品列表</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 注册表单 -->
+    <div class="register-container">
+        <div class="card">
+            <h2 class="card-header text-center">用户注册</h2>
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" name="username" class="form-input" required
+                           placeholder="请输入用户名" minlength="3">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" name="email" class="form-input" required
+                           placeholder="请输入邮箱">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" name="password" class="form-input" required
+                           placeholder="请输入密码（至少6位）" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">确认密码</label>
+                    <input type="password" name="confirmPassword" class="form-input" required
+                           placeholder="请再次输入密码" minlength="6">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        注册
+                    </button>
+                </div>
+                <div class="text-center">
+                    已有账号？<a href="/login.html" style="color: #409EFF;">立即登录</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        async function handleRegister(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+
+            // 验证两次密码是否一致
+            if (password !== confirmPassword) {
+                showMessage('两次输入的密码不一致', 'error');
+                return;
+            }
+
+            const data = {
+                username: formData.get('username'),
+                email: formData.get('email'),
+                password: password
+            };
+
+            try {
+                const result = await post(`${API_BASE}/register`, data);
+
+                if (result.success) {
+                    showMessage('注册成功！正在跳转到登录页...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 1500);
+                } else {
+                    showMessage(result.message || '注册失败', 'error');
+                }
+            } catch (error) {
+                console.error('注册失败:', error);
+                showMessage('注册失败，请重试', 'error');
+            }
+        }
+
+        // 如果已登录，跳转到商品列表
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkLoginStatus();
+            if (currentUser) {
+                window.location.href = '/product-list.html';
+            }
+        });
+    </script>
+</body>
+</html>

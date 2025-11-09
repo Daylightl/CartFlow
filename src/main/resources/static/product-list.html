@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品列表 - CartFlow</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/index.html" class="navbar-brand">CartFlow</a>
+            <div class="navbar-menu">
+                <a href="/index.html">首页</a>
+                <a href="/product-list.html">商品列表</a>
+            </div>
+            <div class="navbar-user" id="navbar-user"></div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <div class="card">
+            <!-- 搜索和筛选 -->
+            <div class="d-flex justify-between align-center gap-20 mb-20">
+                <div style="flex: 1;">
+                    <input type="text" id="searchInput" class="form-input"
+                           placeholder="搜索商品..." onkeyup="handleSearch(event)">
+                </div>
+                <div>
+                    <select id="categorySelect" class="form-input" onchange="handleCategoryChange()"
+                            style="width: 200px;">
+                        <option value="">全部分类</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 商品网格 -->
+            <div class="product-grid" id="product-list"></div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        let allProducts = [];
+        let currentCategory = '';
+        let currentSearch = '';
+
+        // 加载商品列表
+        async function loadProducts() {
+            try {
+                let url = `${API_BASE}/products`;
+                const params = [];
+
+                if (currentCategory) {
+                    params.push(`category=${encodeURIComponent(currentCategory)}`);
+                }
+                if (currentSearch) {
+                    params.push(`search=${encodeURIComponent(currentSearch)}`);
+                }
+
+                if (params.length > 0) {
+                    url += '?' + params.join('&');
+                }
+
+                const result = await get(url);
+                if (result.success) {
+                    allProducts = result.data;
+                    renderProducts();
+                }
+            } catch (error) {
+                console.error('加载商品失败:', error);
+                showMessage('加载商品失败', 'error');
+            }
+        }
+
+        // 渲染商品
+        function renderProducts() {
+            const container = document.getElementById('product-list');
+
+            if (allProducts.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p class="empty-state-text">暂无商品</p></div>';
+                return;
+            }
+
+            container.innerHTML = allProducts.map(product => `
+                <div class="product-card" onclick="window.location.href='/product-detail.html?id=${product.id}'">
+                    <img src="${product.imageUrl}" alt="${product.name}" class="product-image"
+                         onerror="this.src='/images/products/thumbs/P001_thumb.jpg'">
+                    <div class="product-info">
+                        <div class="product-name" title="${product.name}">${product.name}</div>
+                        <div class="product-price">${formatPrice(product.price)}</div>
+                        <div class="product-stock">库存: ${product.stock}</div>
+                        <button class="btn btn-primary" style="width: 100%;"
+                                onclick="event.stopPropagation(); addToCart(${product.id})">
+                            加入购物车
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 加载分类
+        async function loadCategories() {
+            try {
+                const result = await get(`${API_BASE}/products/categories`);
+                if (result.success) {
+                    const select = document.getElementById('categorySelect');
+                    result.data.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category;
+                        option.textContent = category;
+                        select.appendChild(option);
+                    });
+
+                    // 从URL参数中获取分类
+                    const urlCategory = getUrlParam('category');
+                    if (urlCategory) {
+                        select.value = urlCategory;
+                        currentCategory = urlCategory;
+                    }
+                }
+            } catch (error) {
+                console.error('加载分类失败:', error);
+            }
+        }
+
+        // 处理搜索
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                currentSearch = event.target.value.trim();
+                loadProducts();
+            }
+        }
+
+        // 处理分类变更
+        function handleCategoryChange() {
+            const select = document.getElementById('categorySelect');
+            currentCategory = select.value;
+            loadProducts();
+        }
+
+        // 添加到购物车
+        async function addToCart(productId) {
+            if (!requireLogin()) return;
+
+            try {
+                const result = await post(`${API_BASE}/cart/add`, {
+                    productId: productId,
+                    quantity: 1
+                });
+
+                if (result.success) {
+                    showMessage('添加成功！', 'success');
+                } else {
+                    showMessage(result.message || '添加失败', 'error');
+                }
+            } catch (error) {
+                console.error('添加购物车失败:', error);
+                showMessage('添加失败，请重试', 'error');
+            }
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadCategories();
+            await loadProducts();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>购物车 - CartFlow</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/index.html" class="navbar-brand">CartFlow</a>
+            <div class="navbar-menu">
+                <a href="/index.html">首页</a>
+                <a href="/product-list.html">商品列表</a>
+            </div>
+            <div class="navbar-user" id="navbar-user"></div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <div class="card">
+            <div class="d-flex justify-between align-center mb-20">
+                <h2 class="card-header" style="margin: 0;">购物车</h2>
+                <button class="btn btn-danger" onclick="clearCart()">清空购物车</button>
+            </div>
+
+            <div id="cart-content"></div>
+
+            <div id="cart-summary" style="display: none;">
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
+                    <div class="d-flex justify-between align-center">
+                        <div>
+                            <span style="font-size: 18px; color: #606266;">总计：</span>
+                            <span id="total-price" style="font-size: 28px; color: #F56C6C; font-weight: bold;"></span>
+                        </div>
+                        <button class="btn btn-success" onclick="checkout()"
+                                style="padding: 15px 40px; font-size: 16px;">
+                            去结算
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        let cart = null;
+
+        // 加载购物车
+        async function loadCart() {
+            if (!requireLogin()) return;
+
+            try {
+                const result = await get(`${API_BASE}/cart`);
+                if (result.success) {
+                    cart = result.data;
+                    renderCart();
+                }
+            } catch (error) {
+                console.error('加载购物车失败:', error);
+                showMessage('加载购物车失败', 'error');
+            }
+        }
+
+        // 渲染购物车
+        function renderCart() {
+            const container = document.getElementById('cart-content');
+            const summary = document.getElementById('cart-summary');
+
+            if (!cart || cart.items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🛒</div>
+                        <p class="empty-state-text">购物车是空的</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/product-list.html'">
+                            去购物
+                        </button>
+                    </div>
+                `;
+                summary.style.display = 'none';
+                return;
+            }
+
+            // 渲染购物车表格
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>商品信息</th>
+                            <th>单价</th>
+                            <th>数量</th>
+                            <th>小计</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${cart.items.map(item => `
+                            <tr>
+                                <td>${item.productName}</td>
+                                <td>${formatPrice(item.price)}</td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <button class="btn btn-secondary" onclick="updateQuantity(${item.productId}, ${item.quantity - 1})">-</button>
+                                        <input type="number" value="${item.quantity}" min="1"
+                                               style="width: 60px; text-align: center; padding: 5px; border: 1px solid #dcdfe6; border-radius: 4px;"
+                                               onchange="updateQuantity(${item.productId}, this.value)">
+                                        <button class="btn btn-secondary" onclick="updateQuantity(${item.productId}, ${item.quantity + 1})">+</button>
+                                    </div>
+                                </td>
+                                <td style="font-weight: bold; color: #F56C6C;">${formatPrice(item.price * item.quantity)}</td>
+                                <td>
+                                    <button class="btn btn-danger" onclick="removeItem(${item.productId})">删除</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            // 显示总价
+            summary.style.display = 'block';
+            document.getElementById('total-price').textContent = formatPrice(cart.totalPrice);
+        }
+
+        // 更新数量
+        async function updateQuantity(productId, quantity) {
+            quantity = parseInt(quantity);
+            if (quantity < 0) return;
+
+            try {
+                const result = await put(`${API_BASE}/cart/update`, {
+                    productId: productId,
+                    quantity: quantity
+                });
+
+                if (result.success) {
+                    cart = result.data;
+                    renderCart();
+                } else {
+                    showMessage(result.message || '更新失败', 'error');
+                    loadCart();
+                }
+            } catch (error) {
+                console.error('更新数量失败:', error);
+                showMessage('更新失败', 'error');
+            }
+        }
+
+        // 删除商品
+        async function removeItem(productId) {
+            if (!confirm('确定要删除这件商品吗？')) return;
+
+            try {
+                const result = await del(`${API_BASE}/cart/remove`, {
+                    productId: productId
+                });
+
+                if (result.success) {
+                    cart = result.data;
+                    renderCart();
+                    showMessage('删除成功', 'success');
+                } else {
+                    showMessage(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                console.error('删除失败:', error);
+                showMessage('删除失败', 'error');
+            }
+        }
+
+        // 清空购物车
+        async function clearCart() {
+            if (!confirm('确定要清空购物车吗？')) return;
+
+            try {
+                const result = await del(`${API_BASE}/cart/clear`);
+                if (result.success) {
+                    showMessage('购物车已清空', 'success');
+                    loadCart();
+                }
+            } catch (error) {
+                console.error('清空失败:', error);
+                showMessage('清空失败', 'error');
+            }
+        }
+
+        // 去结算
+        function checkout() {
+            const address = prompt('请输入收货地址：');
+            if (!address || !address.trim()) {
+                showMessage('请输入收货地址', 'warning');
+                return;
+            }
+
+            createOrder(address.trim());
+        }
+
+        // 创建订单
+        async function createOrder(address) {
+            try {
+                const result = await post(`${API_BASE}/orders/create`, {
+                    address: address
+                });
+
+                if (result.success) {
+                    showMessage('订单创建成功！', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/order-detail.html?id=' + result.orderId;
+                    }, 1000);
+                } else {
+                    showMessage(result.message || '订单创建失败', 'error');
+                }
+            } catch (error) {
+                console.error('创建订单失败:', error);
+                showMessage('创建订单失败', 'error');
+            }
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCart();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录 - CartFlow</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 80px auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/index.html" class="navbar-brand">CartFlow</a>
+            <div class="navbar-menu">
+                <a href="/index.html">首页</a>
+                <a href="/product-list.html">商品列表</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 登录表单 -->
+    <div class="login-container">
+        <div class="card">
+            <h2 class="card-header text-center">用户登录</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" name="username" class="form-input" required
+                           placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" name="password" class="form-input" required
+                           placeholder="请输入密码">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        登录
+                    </button>
+                </div>
+                <div class="text-center">
+                    还没有账号？<a href="/register.html" style="color: #409EFF;">立即注册</a>
+                </div>
+            </form>
+
+            <!-- 测试账号提示 -->
+            <div style="margin-top: 30px; padding: 15px; background-color: #f0f9ff; border-radius: 4px; border: 1px solid #c2e7ff;">
+                <h4 style="margin-bottom: 10px; color: #409EFF;">测试账号</h4>
+                <p style="margin: 5px 0; font-size: 14px;">普通用户: zhangsan / 123456</p>
+                <p style="margin: 5px 0; font-size: 14px;">普通用户: lisi / 123456</p>
+                <p style="margin: 5px 0; font-size: 14px;">管理员: admin / admin</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = {
+                username: formData.get('username'),
+                password: formData.get('password')
+            };
+
+            try {
+                const result = await post(`${API_BASE}/login`, data);
+
+                if (result.success) {
+                    showMessage('登录成功！', 'success');
+                    currentUser = result.data;
+
+                    setTimeout(() => {
+                        window.location.href = '/product-list.html';
+                    }, 1000);
+                } else {
+                    showMessage(result.message || '登录失败', 'error');
+                }
+            } catch (error) {
+                console.error('登录失败:', error);
+                showMessage('登录失败，请重试', 'error');
+            }
+        }
+
+        // 如果已登录，跳转到商品列表
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkLoginStatus();
+            if (currentUser) {
+                window.location.href = '/product-list.html';
+            }
+        });
+    </script>
+</body>
+</html>
