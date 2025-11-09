@@ -33,7 +33,7 @@
 
         // 加载订单列表
         async function loadOrders() {
-            if (!requireLogin()) return;
+            if (!(await requireLogin())) return;
 
             try {
                 const result = await get(`${API_BASE}/orders`);
